@@ -2,7 +2,9 @@
 title: "HW5"
 author: "Ruwen Zhou"
 date: "11/18/2020"
-output: html_document
+output:
+  pdf_document: default
+  github_document: default
 ---
 
 ```{r setup, include = FALSE}
@@ -109,7 +111,7 @@ homicide_df =
 
 ## Problem 2
 
-Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time
+### Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time
 ```{r}
 tidy_df = tibble(
     path = list.files("lda_data"),
@@ -132,7 +134,7 @@ tidy_df %>% knitr::kable()
 tidy_df
 ```
 
-Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups
+### Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups
 ```{r}
 tidy_df %>%
   unite("arm_id", c(arm, subject_id), sep = "_", remove = F) %>%
@@ -148,8 +150,60 @@ The observation data of experimental arm increases faster than the control arm o
 
 ## Problem 3
 
+### T test
+```{r}
+n = 30
+mu = 0
+sigma = 5
+x = rnorm(n, mean = mu, sd = sigma)
+t.test(x, mu = mu, conf.level = 0.95)
+```
+### Generate 5000 datasets from the model
+```{r}
+sim_data = function(n = 30, mu = 0, sigma = 5) {
+     x = rnorm(n, mean = mu, sd = sigma)
+     t_test = t.test(x, conf.int = 0.95) %>% broom::tidy()
+     t_test
+}
+output = vector("list", 5000)
+for (i in 1:5000) {
+  output[[i]] = sim_data()
+}
+output %>% head()
 
+```
+### for mu = {0,1,2,3,4,5,6}
+```{r}
+set.seed(1000)
+combine = 
+  tibble(mu = c(0, 1, 2, 3, 4, 5, 6)) %>% 
+  mutate(
+    output = map(.x = mu, ~rerun(5000, sim_data(mu = .x))),
+    new = map(output, bind_rows)) %>% 
+  select(-output) %>% 
+  unnest(new)
+combine %>% head()
+```
 
+### Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of mu on the x axis. 
+
+```{r}
+combine %>% 
+  filter(p.value < 0.05) %>% 
+  group_by(mu) %>% 
+  summarize(prop_rej = n()) %>% 
+  mutate(prop_rej = prop_rej/5000) %>% 
+  ggplot(aes(x = mu, y = prop_rej), color = mu) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(limits = c(0,6), breaks = seq(0,6,1)) +
+  labs(
+    title = "Power of the test over different mu",
+    x = "The true value of mu",
+    y = "Power of the test"
+  )
+```
+As the number of mu increases, the power of the test also increases. The power converges to 1 when mu = 4.
 
 
 
