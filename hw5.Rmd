@@ -91,16 +91,9 @@ results_df %>%
 
 
 ```{r, error = TRUE}
-city_prop_test = function(df) {
-  
-  n_unsovled ...
-  n_total ... 
-  
-  prop.test(.....)
-  
-}
+
 homicide_df = 
-  read_csv("data/homicide-data.csv") %>% 
+  read_csv("homicide_data/homicide-data.csv") %>% 
   mutate(
     city_state = str_c(city, state, sep = "_"),
     resolved = case_when(
@@ -113,3 +106,58 @@ homicide_df =
   filter(city_state != "Tulsa_AL") %>% 
   nest(data = resolved)
 ```
+
+## Problem 2
+
+Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time
+```{r}
+tidy_df = tibble(
+    path = list.files("lda_data"),
+  ) %>% 
+  mutate(
+    path = str_c("lda_data/", path),
+    data = map(.x = path, ~read_csv(.x)),
+    arm_id = str_remove(path, "lda_data/"),
+    arm_id = str_remove(arm_id, ".csv")) %>% 
+  unnest(data) %>% 
+  select(-path) %>% 
+  pivot_longer(
+    week_1:week_8,
+    values_to = "observation_data",
+    names_to = "week",
+    names_prefix = "week_",
+  ) %>% 
+  separate(arm_id, into = c("arm", "subject_id"), sep = "_")
+tidy_df %>% knitr::kable()
+tidy_df
+```
+
+Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups
+```{r}
+tidy_df %>%
+  unite("arm_id", c(arm, subject_id), sep = "_", remove = F) %>%
+  ggplot(aes(x = week, y = observation_data)) +
+  geom_path(aes(color = arm, group = as.factor(arm_id)),alpha = 0.5) +
+  labs(
+    x = "Week",
+    y = "Observation value",
+    title = "Observations on each subject among two arms wihtin 8 weeks"
+    )
+```
+The observation data of experimental arm increases faster than the control arm over time. The measure in control arm is more stable and decreases a little bit after week 6.
+
+## Problem 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
